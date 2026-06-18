@@ -1,7 +1,6 @@
 package com.example.mvidixml.presentation.customers
 
 import android.os.Bundle
-import android.text.InputType
 import android.text.Editable
 import android.text.TextWatcher
 import android.view.View

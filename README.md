@@ -1,203 +1,107 @@
-# MVI DI XML Demo
+# Customers List MVI
 
-Это маленькое Android-приложение на Kotlin для знакомства с двумя идеями:
+Android XML application that refactors the previous Customers List lab to the MVI architecture used in the lecture example.
 
-- MVI - как управлять экраном через события и состояние.
-- Dependency Injection - как передавать зависимости, не создавая все прямо внутри Activity.
+The app keeps the customer logic from the earlier works:
 
-Интерфейс сделан через обычный XML layout, без Compose.
+- regular, medium and premium customers;
+- account and phone fields;
+- premium assistant phone;
+- cashback settings for customer categories;
+- customer details based on customer type.
 
-## Что делает приложение
+The implementation is intentionally not a direct copy of either reference project. It uses the same architectural ideas, but the screen, state model and UI flow are adapted for this project.
 
-На экране есть счетчик и три кнопки:
+## Architecture
 
-- `-` уменьшает счетчик.
-- `Сброс` возвращает счетчик к нулю.
-- `+` увеличивает счетчик.
+The screen follows this flow:
 
-Пример специально простой. Его цель - показать архитектуру, а не сложную бизнес-логику.
+```text
+User action -> Intent -> ViewModel -> Interactor -> Repository -> Reducer -> State -> UI
+```
 
-## Что смотреть в первую очередь
-
-Начни с этих файлов:
+Main files:
 
 1. `app/src/main/res/layout/activity_main.xml`
 
-   Это обычная XML-разметка главного экрана. Здесь описаны текст счетчика, статус и кнопки.
+   XML layout for the customer list screen. It contains search, the add/edit form, category cashback inputs, details output and the customer list.
 
-2. `app/src/main/java/com/example/mvidixml/presentation/MainActivity.kt`
+2. `app/src/main/java/com/example/mvidixml/presentation/customers/CustomersContract.kt`
 
-   Activity ничего не вычисляет сама. Она только:
-   - слушает нажатия кнопок;
-   - отправляет действия во ViewModel;
-   - получает новое состояние;
-   - перерисовывает XML-экран.
+   Defines the MVI contract:
 
-3. `app/src/main/java/com/example/mvidixml/presentation/MainContract.kt`
+   - `Intent` for user actions;
+   - `State` for the full screen state;
+   - `Effect` for one-time UI events such as Toast messages.
 
-   Это главный файл для понимания MVI. В нем описаны:
-   - `Intent` - что произошло;
-   - `State` - как должен выглядеть экран;
-   - `Effect` - одноразовые события, например Toast.
+3. `app/src/main/java/com/example/mvidixml/presentation/customers/CustomersViewModel.kt`
 
-4. `app/src/main/java/com/example/mvidixml/presentation/MainViewModel.kt`
+   Accepts intents, calls domain logic and publishes new state or effects.
 
-   Здесь находится центр MVI-потока. ViewModel принимает `Intent`, вызывает бизнес-логику и публикует новый `State`.
+4. `app/src/main/java/com/example/mvidixml/presentation/customers/CustomersReducer.kt`
 
-5. `app/src/main/java/com/example/mvidixml/di/AppContainer.kt`
+   Builds new immutable screen states.
 
-   Это простой ручной Dependency Injection. Здесь создаются зависимости приложения.
+5. `app/src/main/java/com/example/mvidixml/domain/CustomerInteractor.kt`
 
-## Как работает MVI на примере кнопки +
+   Contains business logic: loading, filtering, adding, editing, deleting, customer details and category cashback updates.
 
-Путь одного клика выглядит так:
+6. `app/src/main/java/com/example/mvidixml/data`
 
-1. Пользователь нажимает кнопку `+` в XML-экране.
-2. `MainActivity` отправляет во ViewModel событие:
+   Contains the in-memory repository and customer/category models.
 
-   ```kotlin
-   viewModel.accept(Intent.IncrementClicked)
-   ```
+7. `app/src/main/java/com/example/mvidixml/di/AppContainer.kt`
 
-3. `MainViewModel` получает этот `Intent`.
-4. ViewModel вызывает `CounterInteractor.increment()`.
-5. Interactor меняет значение через Repository.
-6. ViewModel создает новый `State`.
-7. `MainActivity` получает `State` и обновляет TextView.
+   Manual dependency injection container, similar to the lecture MVI example.
 
-Главная идея: экран не меняется случайно из разных мест. Все идет по одному маршруту:
+## Features To Check
 
-```text
-User action -> Intent -> ViewModel -> Interactor -> State -> UI
-```
+- Customer list is loaded from an in-memory repository.
+- Search works by name, account, phone and category.
+- A new customer can be added.
+- Existing customers can be edited.
+- Customers can be deleted.
+- Details show type-specific information:
+  - regular customer text;
+  - medium customer cashback for 30 days;
+  - premium customer assistant phone.
+- Category cashback values can be changed and saved.
+- Toast messages are emitted through MVI `Effect`.
 
-## Что такое Intent, State и Effect
+## MVI Examples In This Project
 
-### Intent
-
-`Intent` - это действие пользователя или системы.
-
-В этом проекте есть такие действия:
+User searches:
 
 ```kotlin
-Load
-IncrementClicked
-DecrementClicked
-ResetClicked
+viewModel.accept(Intent.SearchChanged(query))
 ```
 
-То есть Activity не говорит: "увеличь текст на экране". Она говорит: "пользователь нажал плюс".
-
-### State
-
-`State` - это полное состояние экрана в один момент времени.
-
-В проекте он выглядит так:
+User saves a customer:
 
 ```kotlin
-data class State(
-    val counter: Int = 0,
-    val isLoading: Boolean = false,
-    val statusText: String = "Нажмите кнопку, чтобы изменить счетчик"
-)
+viewModel.accept(Intent.SubmitClicked)
 ```
 
-Если Activity получила `State`, она может полностью понять, что показать на экране.
-
-### Effect
-
-`Effect` - это одноразовое событие.
-
-Например, Toast после сброса счетчика:
+User opens details:
 
 ```kotlin
-ShowMessage("Счетчик сброшен")
+viewModel.accept(Intent.DetailsClicked(customer.id))
 ```
 
-Toast не стоит хранить в `State`, потому что это не постоянное состояние экрана, а событие на один раз.
+The Activity does not modify repository data directly. It only sends intents and renders the current state.
 
-## Что демонстрирует Dependency Injection
+## How To Build
 
-Плохой вариант был бы таким: `MainActivity` сама создает Repository, Interactor и ViewModel.
-
-В этом проекте сделано иначе:
-
-```text
-MviDiApplication
-    -> AppContainer
-        -> InMemoryCounterRepository
-        -> CounterInteractor
-        -> MainViewModelFactory
-            -> MainViewModel
-```
-
-Activity получает уже готовую фабрику:
-
-```kotlin
-(application as MviDiApplication).appContainer.mainViewModelFactory
-```
-
-Зачем это нужно:
-
-- Activity становится проще.
-- Зависимости видно в одном месте.
-- Repository можно заменить, например, на базу данных или сеть.
-- ViewModel легче тестировать, потому что ей можно передать фейковый Interactor.
-
-## Слои проекта
-
-```text
-data
-```
-
-Слой данных. Здесь лежит `CounterRepository` и его простая реализация `InMemoryCounterRepository`.
-
-```text
-domain
-```
-
-Слой бизнес-логики. Здесь `CounterInteractor`, который знает, как менять счетчик.
-
-```text
-di
-```
-
-Слой создания зависимостей. Здесь `AppContainer`.
-
-```text
-presentation
-```
-
-Слой экрана. Здесь Activity, ViewModel, MVI Contract и Reducer.
-
-## Почему здесь нет Hilt
-
-Проект показывает Dependency Injection вручную, чтобы было видно сам принцип.
-
-Hilt, Koin или Dagger делают похожую работу автоматически: создают объекты и передают их туда, где они нужны. Но для первого знакомства ручной DI проще: меньше магии, больше понятного кода.
-
-## Как запустить
-
-Собрать debug APK:
+From the project root:
 
 ```powershell
 .\gradlew.bat assembleDebug
 ```
 
-APK появится здесь:
+Debug APK output:
 
 ```text
 app/build/outputs/apk/debug/app-debug.apk
 ```
 
-В Android Studio можно просто открыть проект и нажать Run.
-
-## Что попробовать изменить самому
-
-- Добавить кнопку `+10`.
-- Сделать новый `Intent.AddTenClicked`.
-- Добавить метод `addTen()` в `CounterInteractor`.
-- Обновить `MainViewModel`, чтобы он обрабатывал новый Intent.
-- Добавить новый текст статуса в `MainReducer`.
-
-Это хорошее упражнение: оно заставляет пройти весь MVI-маршрут от XML-кнопки до нового `State`.
+To run visually, open `C:\Users\PC\practice-kotlin` in Android Studio, wait for Gradle Sync, choose an emulator or connected phone, then press Run.
