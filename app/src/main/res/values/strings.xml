@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Customers List MVI</string>
+    <string name="main_title">Client Registry</string>
+    <string name="main_subtitle">Customers, categories, cashback and premium details through MVI</string>
+    <string name="search_hint">Search by name, account, phone or category</string>
+    <string name="name_hint">Customer name</string>
+    <string name="account_hint">Account number</string>
+    <string name="phone_hint">Phone</string>
+    <string name="assistant_phone_hint">Premium assistant phone</string>
+    <string name="add_customer">Add client</string>
+    <string name="cancel_edit">Cancel editing</string>
+    <string name="details_customer">Details</string>
+    <string name="edit_customer">Edit</string>
+    <string name="delete_customer">Delete</string>
+    <string name="categories_title">Category cashback per day</string>
+    <string name="regular_cashback_hint">Regular cashback</string>
+    <string name="medium_cashback_hint">Medium cashback</string>
+    <string name="premium_cashback_hint">Premium cashback</string>
+    <string name="save_categories">Save category values</string>
+</resources>
